@@ -24,6 +24,7 @@ class BracketMatcherView
     @tagFinder = new TagFinder(@editor)
     @pairHighlighted = false
     @tagHighlighted = false
+    @highVisibilityEnabled = true
 
     @subscriptions.add @editor.onDidChange =>
       @updateMatch()
@@ -64,13 +65,16 @@ class BracketMatcherView
       @updateMatch() if @editor.isAlive()
 
   updateMatch: ->
+    if @highVisibilityEnabled
+      @highVisibilityHighlight()
+
     if @pairHighlighted
       @editor.destroyMarker(@startMarker.id)
       @editor.destroyMarker(@endMarker.id)
 
     @pairHighlighted = false
     @tagHighlighted = false
-    @highlightInsidePair()
+
     return unless @editor.getLastSelection().isEmpty()
     return if @editor.isFoldedAtCursorRow()
 
@@ -271,7 +275,10 @@ class BracketMatcherView
       rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
       @editor.setSelectedBufferRange(rangeToSelect)
 
-  highlightInsidePair: ->
+  highVisibilityHighlight: ->
+    if @highVisibilityMarker
+        @editor.destroyMarker(@highVisibilityMarker.id)
+
     if @pairHighlighted
       startRange = @startMarker.getBufferRange()
       endRange = @endMarker.getBufferRange()
@@ -297,7 +304,7 @@ class BracketMatcherView
         endPosition = endRange.start.traverse([0, -2]) # Don't select </
 
     if startPosition? and endPosition?
-      @createMarker([startPosition, endPosition])
+      @highVisibilityMarker = @createMarker([startPosition, endPosition])
       # @endMarker = @createMarker([matchPosition, matchPosition.traverse([0, 1])])
       #rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
 
