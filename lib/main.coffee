@@ -12,6 +12,9 @@ module.exports =
     wrapSelectionsInBrackets:
       type: 'boolean'
       default: true
+    highVisibilityMode:
+      type: 'boolean'
+      default: false
 
   activate: ->
     atom.workspace.observeTextEditors (editor) ->

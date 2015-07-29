@@ -1,4 +1,12 @@
+@import "syntax-variables";
+
 .bracket-matcher .region {
   border-bottom: 1px dotted lime;
   position: absolute;
+}
+
+.bracket-matcher-hivis .region {
+  position: absolute;
+  background: @syntax-selection-color;
+  opacity: .35;
 }

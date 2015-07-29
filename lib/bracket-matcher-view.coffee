@@ -24,7 +24,6 @@ class BracketMatcherView
     @tagFinder = new TagFinder(@editor)
     @pairHighlighted = false
     @tagHighlighted = false
-    @highVisibilityEnabled = true
 
     @subscriptions.add @editor.onDidChange =>
       @updateMatch()
@@ -65,9 +64,6 @@ class BracketMatcherView
       @updateMatch() if @editor.isAlive()
 
   updateMatch: ->
-    if @highVisibilityEnabled
-      @highVisibilityHighlight()
-
     if @pairHighlighted
       @editor.destroyMarker(@startMarker.id)
       @editor.destroyMarker(@endMarker.id)
@@ -77,6 +73,9 @@ class BracketMatcherView
 
     return unless @editor.getLastSelection().isEmpty()
     return if @editor.isFoldedAtCursorRow()
+
+    if atom.config.get('bracket-matcher.highVisibilityMode')
+      @highVisibilityHighlight()
 
     {position, currentPair, matchingPair} = @findCurrentPair(startPairMatches)
     if position
@@ -90,7 +89,6 @@ class BracketMatcherView
       @startMarker = @createMarker([position, position.traverse([0, 1])])
       @endMarker = @createMarker([matchPosition, matchPosition.traverse([0, 1])])
       @pairHighlighted = true
-      console.log "Sdf"
     else
       if pair = @tagFinder.findMatchingTags()
         @startMarker = @createMarker(pair.startRange)
@@ -184,6 +182,11 @@ class BracketMatcherView
     @editor.decorateMarker(marker, type: 'highlight', class: 'bracket-matcher', deprecatedRegionClass: 'bracket-matcher')
     marker
 
+  createHighVisiblityMarker: (bufferRange) ->
+    marker = @editor.markBufferRange(bufferRange)
+    @editor.decorateMarker(marker, type: 'highlight', class: 'bracket-matcher-hivis', deprecatedRegionClass: 'bracket-matcher')
+    marker
+
   findCurrentPair: (matches) ->
     position = @editor.getCursorBufferPosition()
     currentPair = @editor.getTextInRange(Range.fromPointWithDelta(position, 0, 1))
@@ -275,6 +278,7 @@ class BracketMatcherView
       rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
       @editor.setSelectedBufferRange(rangeToSelect)
 
+  # Essentially a duplicate of selectInsidePair
   highVisibilityHighlight: ->
     if @highVisibilityMarker
         @editor.destroyMarker(@highVisibilityMarker.id)
@@ -304,9 +308,7 @@ class BracketMatcherView
         endPosition = endRange.start.traverse([0, -2]) # Don't select </
 
     if startPosition? and endPosition?
-      @highVisibilityMarker = @createMarker([startPosition, endPosition])
-      # @endMarker = @createMarker([matchPosition, matchPosition.traverse([0, 1])])
-      #rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
+      @highVisibilityMarker = @createHighVisiblityMarker([startPosition.traverse([0, 1]), endPosition])
 
   # Insert at the current cursor position a closing tag if there exists an
   # open tag that is not closed afterwards.
