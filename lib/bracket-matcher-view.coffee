@@ -70,7 +70,7 @@ class BracketMatcherView
 
     @pairHighlighted = false
     @tagHighlighted = false
-
+    @highlightInsidePair()
     return unless @editor.getLastSelection().isEmpty()
     return if @editor.isFoldedAtCursorRow()
 
@@ -86,6 +86,7 @@ class BracketMatcherView
       @startMarker = @createMarker([position, position.traverse([0, 1])])
       @endMarker = @createMarker([matchPosition, matchPosition.traverse([0, 1])])
       @pairHighlighted = true
+      console.log "Sdf"
     else
       if pair = @tagFinder.findMatchingTags()
         @startMarker = @createMarker(pair.startRange)
@@ -269,6 +270,36 @@ class BracketMatcherView
     if startPosition? and endPosition?
       rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
       @editor.setSelectedBufferRange(rangeToSelect)
+
+  highlightInsidePair: ->
+    if @pairHighlighted
+      startRange = @startMarker.getBufferRange()
+      endRange = @endMarker.getBufferRange()
+
+      if startRange.compare(endRange) > 0
+        [startRange, endRange] = [endRange, startRange]
+
+      if @tagHighlighted
+        startPosition = startRange.end
+        endPosition = endRange.start.traverse([0, -2]) # Don't select </
+      else
+        startPosition = startRange.start
+        endPosition = endRange.start
+    else
+      if startPosition = @findAnyStartPair(@editor.getCursorBufferPosition())
+        startPair = @editor.getTextInRange(Range.fromPointWithDelta(startPosition, 0, 1))
+        endPosition = @findMatchingEndPair(startPosition, startPair, startPairMatches[startPair])
+      else if pair = @tagFinder.findEnclosingTags()
+        {startRange, endRange} = pair
+        if startRange.compare(endRange) > 0
+          [startRange, endRange] = [endRange, startRange]
+        startPosition = startRange.end
+        endPosition = endRange.start.traverse([0, -2]) # Don't select </
+
+    if startPosition? and endPosition?
+      @createMarker([startPosition, endPosition])
+      # @endMarker = @createMarker([matchPosition, matchPosition.traverse([0, 1])])
+      #rangeToSelect = new Range(startPosition.traverse([0, 1]), endPosition)
 
   # Insert at the current cursor position a closing tag if there exists an
   # open tag that is not closed afterwards.
